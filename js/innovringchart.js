@@ -1,5 +1,3 @@
-import { highlightInNetworkChartBasedOnSelection } from './network_plot.js';
-
 var ringdata, ringsvg, filtereddata, ringheight, ringwidth, inwidth, inringheight, maxRadius, minRadius, parseTime, parsedate;
 var dateToRadius, timeScale, uniquedates;
 var loc, cc;
@@ -11,6 +9,7 @@ var timelabelangles;
 var timelabel;
 var time;
 
+var border_color = '#e9eff1';
 
 // var colorMap = {
 //     "Travel and Accommodation": "#FFC107",
@@ -74,8 +73,8 @@ document.addEventListener('DOMContentLoaded', function () {
   })]).then(function (values) {
     ringdata = values[0];
 
-    ringwidth = 900;
-    ringheight = 900;
+    ringwidth = 750;
+    ringheight = 750;
     ringsvg = d3.select("#ring_svg")
     // .append("svg")
     // .attr("width", ringwidth)
@@ -96,12 +95,17 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 })
 function UpdateData(selected_location, selected_cc) {
+  var currentloc
   d3.selectAll(".box_circles").style("opacity", 0.1);
   if (selected_location == 1) {
     d3.selectAll(".box_circles").style("opacity", 1);
+    d3.selectAll('.cc_bars').style('stroke-width',1);
   }
+
   else {
     d3.selectAll('#box_' + location_index[selected_location]).style("opacity", 1);
+    d3.selectAll('.cc_bars').style('stroke-width',1);
+    d3.select("#bar_"+location_index[selected_location] ).style("stroke-width",4);
   }
   var allcc = (selected_cc == '1');
   var alloc = (selected_location == '1');
@@ -128,12 +132,14 @@ function Updatering(d, i) {
 
   if (i == 'dALL') {
     ringsvg.selectAll(".transactions")
-      .style('stroke', 'white')
+      .style('stroke', border_color)
+      .style('stroke-width', 0.5)
       .style("visibility", "visible");
   }
   else {
     d3.selectAll('[id*="' + i + '"]')
-      .style('stroke', 'white')
+      .style('stroke', border_color)
+      .style('stroke-width', 0.5)
       .style("visibility", "visible");
   }
 }
@@ -143,8 +149,21 @@ function timetoangle(time) {
 function DrawChart() {
   parsedate = d3.timeParse("%Y-%m-%d");
   parseTime = d3.timeParse("%H:%M:%S");
-  maxRadius = (Math.min(inwidth, inringheight)) / 2 - 50;
+  maxRadius = (Math.min(inwidth, inringheight)) / 2 - 30;
   minRadius = 50;
+
+
+  var tooltipring = d3.select("#right-ring-div")
+  .append("div")
+  .style("opacity", 0)
+  .attr("class", "tooltipring")
+  .style("background-color", border_color)
+  .style("color", "black")
+  .style("border", "solid")
+  .style("border-width", "2px")
+  .style("border-radius", "5px")
+  .style("padding", "5px")
+  .style("position", "absolute");
 
   dateToRadius = d3.scaleTime()
     .domain(d3.extent(ringdata, d => parsedate(d.date)))
@@ -156,9 +175,7 @@ function DrawChart() {
 
   days = ringsvg.selectAll(".days")
     .data(Array.from(uniquedates))
-    // .enter()
     .join("circle")
-    // .attr("id",d => d.location)
     .attr("cx", inwidth / 2)
     .attr("cy", inringheight / 2)
     .attr("r", d => dateToRadius(parsedate(d)))
@@ -209,35 +226,29 @@ function DrawChart() {
     .attr("class", "transactions")
     .attr("cx", function (d) { return inwidth / 2 + dateToRadius(parsedate(d.date)) * Math.cos(timetoangle(d.time)); })
     .attr("cy", function (d) { return inringheight / 2 + dateToRadius(parsedate(d.date)) * Math.sin(timetoangle(d.time)); })
-    .attr("r", 3)
+    .attr("r", 3.5)
     .attr("id", d => "c" + d.last4ccnum + '_t' + d.time + '_d' + d.date + '_l' + d.location + "_ty" + loctype[d.location])
     .attr("fill", d => colorMap[loctype[d.location]])
     .style("visibility", "visible")
-    .style("opacity", 1);
-
-  time.append("svg:title")
-    .text(function (d) {
-      return "Locationr: " + d.location +
-        "\nTime: " + d.time + " time\n" +
-        "Date: " + d.date + " date\n" +
-        "\nPrice :" + d.price +
-        "\n CCnum : " + d.last4ccnum;
+    .style("opacity", 1)
+    .on("mouseover", function (_, d) {
+      tooltipring.style("opacity", 1);
+      time.style("opacity", 0.3);
+      d3.select(this).style("opacity", 1);
+      d3.select(this).style("stroke", border_color);
+    })
+    .on("mouseout", function (_, d) {
+      time.style("opacity", 1)
+      tooltipring.html("").style("opacity", 0);
+      d3.select(this).style("opacity", 1);
+      d3.select(this).style("stroke", "none");
+    })
+    .on("mousemove", function (event, d) {
+      d3.select(this).style("opacity", 1);
+      tooltipring.html('Spending: ' + d.price + '<br>' + 'Location: ' + d.location + '<br>' + 'Time: '+ d.time + '<br>' +"Date: "+ d.date)
+        .style("left", event.clientX + window.scrollX + 20 + "px")
+        .style("top", event.clientY + window.scrollY - 20 + "px");
     });
-
-  // const arcGen = (innerRadius, outerRadius, startAngle, endAngle) => d3.arc()
-  // .innerRadius(innerRadius)
-  // .outerRadius(outerRadius)
-  // .startAngle(startAngle)
-  // .endAngle(endAngle);
-
-
-
-  // ringsvg.selectAll('.arc')
-  // .data(d3.range(2))
-  // .join('path')
-  // .attr('class', 'arc')
-  // .attr('d', d => arcGen(minRadius, maxRadius, d*Math.PI, d*Math.PI + Math.PI))
-  // .attr('fill', 'red' );
 
 
 
@@ -266,31 +277,52 @@ function legends() {
 
   const legendWidth = 150;
   const legendHeight = 20 * 4; // height of each item in legend is 20
-  const legendr = ringsvg
+  var legendr = ringsvg
     .append("g")
     .attr("class", "legend")
     .attr("width", legendWidth)
     .attr("height", legendHeight)
     .attr("transform", 'translate(583,0)');
+   
 
-  legendr.selectAll("rect")
+  var clickedty = null
+  var rectty = legendr.selectAll("legrect")
     .data(Object.keys(colorMap))
     .enter()
     .append("rect")
-    .attr("x", 0)
-    .attr("y", (d, i) => i * 20) // position each item vertically
-    .attr("width", 15)
-    .attr("height", 15)
+    .attr("x", -120)
+    .attr("y", (d, i) => (i * 20)+8) // position each item vertically
+    .attr("width", 13)
+    .attr("height", 13)
     .style("fill", d => colorMap[d])
-    .on('click', (d, i) => Updatering(i, "ty" + i));
+    .style("stroke", "black")
+    .on('click', function(d,i) {
+    // (d, i) => Updatering(i, "ty" + i));
+    // console.log(i)
+    if (clickedty == i) {
+      rectty.style("stroke", "black");
+      d3.selectAll(".transactions")
+        .style("visibility", "visible")
+        .style("stroke", "none")
+      clickedty = null;
+    }
+    else {
+      rectty.style("stroke", "black")
+      d3.select(this).style("stroke", border_color)
+      clickedty = i;
+      Updatering(i, "ty" + i);
 
-  legendr.selectAll("text")
+    }
+  });
+
+  legendr.selectAll(".legtext")
     .data(Object.keys(colorMap))
     .enter()
     .append("text")
-    .attr("x", 20)
-    .attr("y", (d, i) => i * 20 + 12) // position the text vertically
-    .text(d => d); // set the text to the key value
+    .attr("x", -100)
+    .attr("y", (d, i) => i * 20 + 20) // position the text vertically
+    .text(d => d) // set the text to the key value
+    .style('font-size', '11px');
 
 
 }
@@ -305,36 +337,30 @@ function calend() {
 
   // Create a grid of squares for each date
   var clickedcal = null
-  var gridSize = 25,
+  var gridSize = 22,
     padding = 5;
   uniquedates.add('ALL')
-
-  cal.append("rect")
-    .attr("x", 0)
-    .attr("y", 0)
-    .attr("width", 120)
-    .attr("height", 138)
-    .style("fill", "#f7f7f7");
 
   cal.append("text")
     .attr("x", 60)
     .attr("y", 130)
     .attr("text-anchor", "middle")
     .attr('fill', "green")
+    .style("font-size", "14px")
     .text("Calendar");
 
   var squares = cal.selectAll(".square")
     .data(Array.from(uniquedates))
     .join("rect")
     .attr("class", "square")
-    .attr("x", function (d, i) { return i % 4 * (gridSize + padding); })
-    .attr("y", function (d, i) { return Math.floor(i / 4) * (gridSize + padding); })
+    .attr("x", function (d, i) { return i % 4 * (gridSize + padding)+10; })
+    .attr("y", function (d, i) { return Math.floor(i / 4) * (gridSize + padding)+10; })
     .attr("width", gridSize)
     .attr("height", gridSize)
     .style("fill", "lightgreen")
     .style("stroke", "black")
     .on("click", function (d, i) {
-      // Call your update chart function with the selected date
+      // Call  update chart function with the selected date
       if (clickedcal == i) {
         squares.style("stroke", "black");
         d3.selectAll(".transactions")
@@ -360,12 +386,13 @@ function calend() {
     .join("text")
     .attr("class", "label")
     .style("pointer-events", "none")
-    .attr("x", function (d, i) { return i % 4 * (gridSize + padding) + gridSize / 2; })
-    .attr("y", function (d, i) { return Math.floor(i / 4) * (gridSize + padding) + gridSize / 2; })
+    .attr("x", function (d, i) { return (i % 4 * (gridSize + padding) + gridSize / 2)+10; })
+    .attr("y", function (d, i) { return (Math.floor(i / 4) * (gridSize + padding) + gridSize / 2)+10; })
     .text(function (d) { return d.slice(-3).replace('-', ''); })
     .style("text-anchor", "middle")
     .style("dominant-baseline", "central")
-    .style("fill", "#333");
+    .style("fill", "#333")
+    .style("font-size", "12px");
 }
 
 

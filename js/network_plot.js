@@ -1,6 +1,7 @@
 var node;
 var link;
 var netData;
+var node_text;
 var NodeNameToNodeIdMapping = {};
 // var CarNameToNodeIdMapping = {};
 
@@ -16,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function drawNetworkPlot(netData) {
-  var margin = { top: 50, right: 30, bottom: 100, left: 100 },
+  var margin = { top: 10, right: 30, bottom: 100, left: 100 },
     width = 1200 - margin.left - margin.right,
     height = 1000 - margin.top - margin.bottom;
   var svg = d3.select('#network_svg');
@@ -33,6 +34,19 @@ function drawNetworkPlot(netData) {
     5: "data/penta.svg"
   }
   var color = d3.scaleOrdinal().domain(type).range(d3.schemeSet2);
+
+  var tooltip = d3.select("#question_4_div")
+      .append("div")
+      .style("opacity", 0)
+      .attr("class", "NetworkTooltip")
+      .style("background-color", "white")
+      .style("color", "black")
+      .style("border", "solid")
+      .style("border-width", "2px")
+      .style("border-radius", "5px")
+      .style("padding", "5px")
+      .style("position", "absolute");
+
   // Initialize the links
   link = svg
     .selectAll("line")
@@ -55,26 +69,62 @@ function drawNetworkPlot(netData) {
     // .attr("r", 20)
     .attr("id", d => "a" + d.id)
     .on("mouseover", function (d, i) {
+      // tooltip.style("opacity", 1);
       var id = d.target.id;
       highlightBasedOnNodeId(id);
     })
     .on("mouseout", function (d, i) {
+      // tooltip.html("").style("opacity", 0);
       var id = d.target.id;
       highlightBasedOnNodeId(id, true);
     })
+    // .on("mousemove", function (event, d) {
+    //   var tooltipText = `Location: \n ${d.name}`;
+    //   if(d.group>0) tooltipText = `Employee: \n ${d.firstname} ${d.lastname}`;
+    //   tooltip.html(tooltipText)
+    //     .style("left", event.clientX + window.scrollX + 20 + "px")
+    //     .style("top", event.clientY + window.scrollY - 20 + "px");
+    // });
+
+    node_text = svg
+    .selectAll(".nodeTexts")
+    .data(netData.nodes)
+    .enter()
+    .append('text')
+    .attr("class",'nodeTexts')
+    .attr("id", d => "a" + d.id)
+    .style("opacity", 0.2)
+    .style('font-size',"10px")
+    .text(d => {
+      if(d.group==0)
+      return d.name
+      else{
+        return d.firstname + " "+ d.lastname
+      }
+    })
+    
 
 
   // legend
   svg
     .selectAll("legends")
-    .data(Object.values(image_ref))
+    .data(Object.keys(image_ref))
     .enter()
     .append('image')
-    .attr("xlink:href", d => d)
+    .attr("xlink:href", d => image_ref[d])
+    .attr("id", d => "g"+d)
     .attr("x", width - 130)
     .attr("y", (_, i) => height - 130 + i * 35)
     .attr("width", 25)
     .attr("height", 25)
+    .on("mouseover", function (d, i) {
+      var id = this.id;
+      highlightBasedOnGroupId(id);
+    })
+    .on("mouseout", function (d, i) {
+      var id = this.id;
+      highlightBasedOnGroupId(id, true);
+    });
 
   const legendText = ['Location', 'Security', 'Information Technology', 'Facilities', 'Executive', 'Engineering']
 
@@ -84,10 +134,19 @@ function drawNetworkPlot(netData) {
     .enter()
     .append('text')
     .text(d => d)
+    .attr("id", (_, i) => "g"+i)
     .attr("x", width - 80)
     .attr("y", (_, i) => height - 112 + i * 35)
     .attr("width", 25)
     .attr("height", 25)
+    .on("mouseover", function (d, i) {
+      var id = this.id;
+      highlightBasedOnGroupId(id);
+    })
+    .on("mouseout", function (d, i) {
+      var id = this.id;
+      highlightBasedOnGroupId(id, true);
+    });
 
 
   var simulation = d3.forceSimulation(netData.nodes)                 // Force algorithm is applied to netData.nodes
@@ -95,7 +154,7 @@ function drawNetworkPlot(netData) {
       .id(function (d) { return d.id; })                     // This provide  the id of a node
       .links(netData.links)                                    // and this the list of links
     )
-    .force("charge", d3.forceManyBody().strength(-800))         // This adds repulsion between nodes. Play with the -400 for the repulsion strength
+    .force("charge", d3.forceManyBody().strength(-500))         // This adds repulsion between nodes. Play with the -400 for the repulsion strength
     .force("center", d3.forceCenter(width / 2, height / 2))     // This force attracts nodes to the center of the svg area
     .on("end", ticked);
 
@@ -111,6 +170,10 @@ function drawNetworkPlot(netData) {
     node
       .attr("x", function (d) { return d.x - 12; })
       .attr("y", function (d) { return d.y - 12; });
+
+    node_text
+    .attr("x", function (d) { return d.x - 12; })
+    .attr("y", function (d) { return d.y - 12; })
 
   }
 }
@@ -130,36 +193,55 @@ function MapNodeNameToNodeId(data) {
 // }
 
 function highlightBasedOnNodeId(id, reset = false) {
-  console.log(id);
+  // console.log(id);
   var r = 25;
   var stroke = "#555";
   var strokeWidth = "4px";
   var remainingLinksOpacity = 0.2;
+  var remainingNodeFilter = "grayscale(1)";
+  var remainingNodeOpacity = 0.2;
 
   if (reset) {
     r = 20;
     stroke = "#aaa";
     strokeWidth = "1px";
     remainingLinksOpacity = 1;
+    remainingNodeFilter = "grayscale(0)";
+    remainingNodeOpacity = 1;
 
     netData.links.map(x => {
-        d3.select("#a" + x.target.id).attr("r", r)
         d3.select("#l" + x.source.id + "_" + x.target.id)
         .style("stroke", stroke)
         .style("stroke-width", strokeWidth)
         .style("opacity", 1);
 
-        d3.select("#a" + x.source.id).attr("r", r)
-        d3.select("#l" + x.source.id + "_" + x.target.id)
+        d3.select("#l" + x.target.id + "_" + x.source.id)
         .style("stroke", stroke)
         .style("stroke-width", strokeWidth)
         .style("opacity", 1);
     })
+
+    node
+      .style('filter', remainingNodeFilter)
+      .style('opacity', remainingNodeOpacity);
+
+    node_text.style('opacity', 0.2);
   }
+  else{
+  node
+  .style('filter', remainingNodeFilter)
+  .style('opacity', remainingNodeOpacity);
+
+  d3.selectAll('#'+id)
+  .style('filter', "grayscale(0)")
+  .style('opacity', 1);
 
   netData.links.map(x => {
     if ("a" + x.source.id === id) {
-      d3.select("#a" + x.target.id).attr("r", r)
+      d3.selectAll("#a" + x.target.id)
+      .style('filter', "grayscale(0)")
+      .style('opacity', 1);
+
       d3.select("#l" + x.source.id + "_" + x.target.id)
       .style("stroke", stroke)
       .style("stroke-width", strokeWidth)
@@ -170,7 +252,10 @@ function highlightBasedOnNodeId(id, reset = false) {
       .style("opacity", remainingLinksOpacity);
     }
     if ("a" + x.target.id === id) {
-      d3.select("#a" + x.source.id).attr("r", r)
+      d3.selectAll("#a" + x.source.id)
+      .style('filter', "grayscale(0)")
+      .style('opacity', 1);
+
       d3.select("#l" + x.source.id + "_" + x.target.id)
       .style("stroke", stroke)
       .style("stroke-width", strokeWidth)
@@ -182,9 +267,9 @@ function highlightBasedOnNodeId(id, reset = false) {
     // }
   })
 }
+}
 
-export function highlightInNetworkChartBasedOnSelection(selectedName) {
-  console.log(selectedName);
+function highlightInNetworkChartBasedOnSelection(selectedName) {
   var r = 20;
   var stroke = "#aaa";
   var strokeWidth = "1px";
@@ -197,5 +282,67 @@ export function highlightInNetworkChartBasedOnSelection(selectedName) {
   .style("opacity", remainingLinksOpacity);
 
   highlightBasedOnNodeId("a"+NodeNameToNodeIdMapping[selectedName]);
+}
+
+function highlightBasedOnGroupId(groupId, reset=false) {
+  if(groupId == "g0") reset = true;
+  var stroke = "#555";
+  var strokeWidth = "4px";
+  var remainingLinksOpacity = 0.2;
+  var remainingNodeFilter = "grayscale(1)";
+  var remainingNodeOpacity = 0.2;
+
+  if (reset) {
+    r = 20; 
+    stroke = "#aaa";
+    strokeWidth = "1px";
+    remainingLinksOpacity = 1;
+    remainingNodeFilter = "grayscale(0)";
+    remainingNodeOpacity = 1;
+
+    netData.links.map(x => {
+        d3.select("#l" + x.source.id + "_" + x.target.id)
+        .style("stroke", stroke)
+        .style("stroke-width", strokeWidth)
+        .style("opacity", 1);
+
+        d3.select("#l" + x.target.id + "_" + x.source.id)
+        .style("stroke", stroke)
+        .style("stroke-width", strokeWidth)
+        .style("opacity", 1);
+    })
+
+    node
+      .style('filter', remainingNodeFilter)
+      .style('opacity', remainingNodeOpacity);
+      node_text.style('opacity', 0.2);
+  }
+  else{
+
+  node
+  .style('filter', remainingNodeFilter)
+  .style('opacity', remainingNodeOpacity);
+
+  netData.links.map(x => {
+    if ("g" + x.source.group === groupId) {
+      d3.selectAll("#a" + x.target.id)
+      .style('filter', "grayscale(0)")
+      .style('opacity', 1);
+
+      d3.selectAll("#a" + x.source.id)
+      .style('filter', "grayscale(0)")
+      .style('opacity', 1);
+
+      d3.select("#l" + x.source.id + "_" + x.target.id)
+      .style("stroke", stroke)
+      .style("stroke-width", strokeWidth)
+      .style("opacity", 1);
+    }
+    else{
+      d3.select("#l" + x.source.id + "_" + x.target.id)
+      .style("opacity", remainingLinksOpacity);
+    }
+  })
+}
 }
 

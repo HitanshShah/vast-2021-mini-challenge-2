@@ -1,5 +1,6 @@
-links_original_opacity = 0.7;
-
+links_original_opacity = 0.75;
+//const {selected_cars} = require('./map.js');
+var carNodeClicked = false;
 function selectLinkByCcNum(cc_num) {
 	// Find the link with the matching source cc_num
 	if (cc_num == '1') {
@@ -23,13 +24,13 @@ function selectLinkByCcNum(cc_num) {
 
 document.addEventListener('DOMContentLoaded', function () {
 	var margin = { top: 10, right: 10, bottom: 10, left: 10 },
-		width = 799 - margin.left - margin.right,
-		height = 5000 - margin.top - margin.bottom;
+		width = 270 - margin.left - margin.right,
+		height = 2500 - margin.top - margin.bottom;
 
 	// format variables
 	var formatNumber = d3.format(",.0f"), // zero decimal places
 		format = function (d) { return formatNumber(d); },
-		color = d3.scaleOrdinal(d3.schemeCategory10);
+		color = d3.scaleOrdinal(d3.schemeSet3);
 
 	// append the svg object to the body of the page
 	var svg = d3.select("#shankey_svg")
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Set the sankey diagram properties
 	var sankey = d3.sankey()
-		.nodeWidth(20)
+		.nodeWidth(10)
 		.nodePadding(8)
 		.size([width, height])
 		.nodeAlign(d3.sankeyRight);
@@ -99,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		link.append("title")
 			.text(function (d) {
 				return d.source.name + " → " +
-					d.target.name + "\n" + format(d.value);
+					d.target.name + "\n" +"Number of transactions:- "+ format(d.value);
 			});
 
 
@@ -115,26 +116,33 @@ document.addEventListener('DOMContentLoaded', function () {
 			.attr("y", function (d) { return d.y0; })
 			.attr("height", function (d) { return d.y1 - d.y0; })
 			.attr("width", sankey.nodeWidth())
-			.attr("nodeId", function (d) {return d.name;})
+			.attr("nodeId", function (d) { return d.name; })
 			.style("fill", function (d) {
-				return d.color = color(d.name.replace(/ .*/, ""));
+				return "grey";
+				// return d.color = color(d.name.replace(/ .*/, ""));
 			})
-			.style("stroke", function (d) {
-				return d3.rgb(d.color).darker(2);
-			})
+			.attr('stroke-width', 0)
 			.append("title")
 			.text(function (d) {
-				return d.name + "\n" + format(d.value);
+				if(d.name.length < 4){
+					return "Car Number:- "+d.name + "\n" +"Total Number of transactions:- "+ format(d.value);
+				}
+				else if(d.name.length == 4){
+					return "Credit Card Number:- "+d.name + "\n" +"Total Number of transactions:- "+ format(d.value);
+				}
+				else{
+					return "Loyalty Card Number:- "+d.name + "\n" +"Total Number of transactions:- "+ format(d.value);
+				}
 			});
 
 		node.on("mouseover", function (d) {
+			// console.log(d);
 			var id = d.target.getAttribute("nodeId");
 			// Set the opacity of all links to a lower value
 			link.style("opacity", 0.1);
 			// Set the opacity of the hovered link to 1 to make it stand out
-			d3.selectAll('.link').data(graph.links).style("opacity", function(d){
-				if (d.source.name == (id) || d.target.name == (id))
-				{
+			d3.selectAll('.link').data(graph.links).style("opacity", function (d) {
+				if (d.source.name == (id) || d.target.name == (id)) {
 					return links_original_opacity;
 				}
 				return 0.1;
@@ -146,7 +154,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			});
 
 		link.style("stroke", function (d) {
-			return d3.rgb(d.source.color).brighter(1);
+			return color(d.source.index);
+			// return d3.rgb(d.source.color).brighter(0.3);
 		});
 
 		link.on("mouseover", function (d) {
@@ -155,28 +164,58 @@ document.addEventListener('DOMContentLoaded', function () {
 			// Set the opacity of the hovered link to 1 to make it stand out
 			d3.select(this).style("opacity", 1);
 		})
-		.on("mouseleave", function(d) {
-			// Set the opacity of all links back to the normal value (e.g., 1)
-			link.style("opacity", links_original_opacity);
+			.on("mouseleave", function (d) {
+				// Set the opacity of all links back to the normal value (e.g., 1)
+				link.style("opacity", links_original_opacity);
+			});
+		// add in the title for the nodes
+		node.append("text")
+			.attr("x", function (d) { return d.x0 - 6; })
+			.attr("y", function (d) { return (d.y1 + d.y0) / 2; })
+			.attr("dy", "0.35em")
+			.attr("text-anchor", "end")
+			.text(function (d) { return d.name; })
+			.filter(function (d) { return d.x0 < width / 2; })
+			.attr("x", function (d) { return d.x1 + 6; })
+			.attr("text-anchor", "start");
+
+
+		node.on("click", function (d) {
+			var nodeSelected = d3.select(d.target);
+			var nodeName = d.srcElement.__data__.name;
+			console.log(typeof (nodeSelected.style("stroke")));
+			if (nodeSelected.style("stroke") === "none") {
+				nodeSelected.style("stroke", "black").style("stroke-width", "2px");
+				console.log("HIIII");
+				if (nodeName.length < 4) {
+					selected_cars.push(nodeName);
+					updateData(nodeName);
+					plotGPS();
+				}
+				else {
+					var cc_dropdown = d3.select("#dropdowncc")
+					cc_dropdown.property('value', nodeName);
+					cc_dropdown = document.querySelector("#dropdowncc");
+					cc_dropdown.dispatchEvent(new Event('change'));
+				}
+			}
+			else {
+				nodeSelected.style("stroke", null).style("stroke-width", null);
+				if (selected_cars.includes(nodeName)) {
+					var index = selected_cars.indexOf(nodeName);
+					selected_cars.splice(index, 1);
+					console.log(d);
+					updateData(nodeName);
+					plotGPS();
+				}
+				else {
+
+					var cc_dropdown = d3.select("#dropdowncc")
+					cc_dropdown.property('value', "1");
+					cc_dropdown = document.querySelector("#dropdowncc");
+					cc_dropdown.dispatchEvent(new Event('change'));
+				}
+			}
 		});
-	// add in the title for the nodes
-	  node.append("text")
-		  .attr("x", function(d) { return d.x0 - 6; })
-		  .attr("y", function(d) { return (d.y1 + d.y0) / 2; })
-		  .attr("dy", "0.35em")
-		  .attr("text-anchor", "end")
-		  .text(function(d) { return d.name; })
-		.filter(function(d) { return d.x0 < width / 2; })
-		  .attr("x", function(d) { return d.x1 + 6; })
-		  .attr("text-anchor", "start");
-	
-	  	  
-	  node.on("click",function(d){
-		console.log(d.srcElement.__data__.name);
-		var cc_dropdown = d3.select("#dropdowncc")
-		cc_dropdown.property('value',d.srcElement.__data__.name);
-		cc_dropdown = document.querySelector("#dropdowncc");
-		cc_dropdown.dispatchEvent(new Event('change'));
-	  } );
-});
+	});
 });
