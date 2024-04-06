@@ -1,5 +1,5 @@
 :root {
-    --bg-color: #e9eff1;
+    --bg-color: rgb(237, 246, 249);
     --white: #faf0e6;
 }
 
@@ -47,28 +47,12 @@ body {
     float: left;
 }
 
-
-
-
-
 #shankey_svg {
-    /* width: 40%; */
+    width: 100%;
     background-color: white;
     border: 1px solid lightgray;
     border-radius: 3px;
     float: left;
-}
-
-
-
-
-
-#network_svg {
-    width: 100%;
-    height: 1000px;
-    background-color: white;
-    border: 1px solid lightgray;
-    border-radius: 3px;
 }
 
 /* #sanky_div {
@@ -80,7 +64,7 @@ body {
 
 
 #left-shanky-div {
-    width: 18%;
+    width: 19%;
     /* height: 800px; */
     /* overflow-y: scroll; */
     float: left;
@@ -128,14 +112,16 @@ body {
     width: 100%;
     height: 655px;
     background-color: white;
-    /* border: 1px solid lightgray; */
-    /* border-radius: 3px; */
-    /* float: right; */
+    position:relative; 
+    top:-12px;
+    left:-11px;
+    padding-top: 5px;
+
 }
 
 #map_div {
     width: 100%;
-    height: 700px;
+    height: 100%;
     /* overflow-y: scroll; */
     background-color: white;
     padding: 15px;
@@ -144,7 +130,7 @@ body {
 }
 
 #map_car_div{
-    width: 250px;
+    width: 23%;
     height: 520px;
     float: right;
     overflow-y: scroll;
@@ -154,7 +140,7 @@ body {
 
 #map_svg {
     margin-top: 20px;
-    width: 940px;
+    width: 75%;
     height: 600px;
     background-color: white;
     display: block;
@@ -164,7 +150,7 @@ body {
 
 
 #map_cars {
-    width: 250px;
+    width: 100%;
     height: 1100px;
     background-color: white;
     display: block;
@@ -194,8 +180,21 @@ body {
 #network_div {
     width: 100%;
     height: 1000px;
-    background-color: violet;
+    background-color: white;
+    padding: 2%;
+    margin-left: 1%;
+    margin-bottom: 4%;
+    margin-top: 2%;
+}
 
+
+#network_svg {
+    width: 98%;
+    height: 960px;
+    background-color: white;
+    /* border: 1px solid lightgray; */
+    border-radius: 3px;
+   
 }
 
 #location_label {
@@ -205,7 +204,7 @@ body {
 }
 
 #ring-drop {
-    width: 220px;
+    width: 30%;
     height: 20px;
     float: left;
     margin-right: 20px;
@@ -221,8 +220,31 @@ body {
 
 #panel {
     margin: 5px;
+    padding-top: 5px;
 }
 
+@font-face {
+    font-family: "Voltaire-Frangela";
+    src: url("./../font/Voltaire-Frangela.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "bariol";
+    src: url("./../font/bariol_regular-webfont.ttf") format("truetype");
+}
+
+@font-face {
+    font-family: "Andiela-Sathony";
+    src: url("./../font/Andiela-Sathony.ttf") format("truetype");
+}
+
+#project_title{
+    font-family: 'Libre Baskerville';
+}
+
+#project_team_names{
+    font-family: 'Ysabeau';
+}
 
 #play{
     width:200px;
@@ -241,3 +263,37 @@ body {
     
     margin-bottom: 10px;
 }   
+
+table{
+    padding: 4%;
+    /* margin-top:1000px; */
+    border-radius: 10px;
+}
+
+#more_info{
+    margin-left: 10%;
+    margin-bottom: 5%;
+    padding: 10%;
+}
+
+tr{
+    border-radius: 10px;
+    background-color: white;
+}
+
+tbody{
+    border-radius: 10px;
+}
+
+
+td{
+    text-align: center
+}
+
+th{
+    background-color: #2f8332;
+}
+h6{
+    padding-left:30px;
+    padding-right:30px;
+}

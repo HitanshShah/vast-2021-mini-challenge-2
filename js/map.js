@@ -5,7 +5,7 @@ var kronos;
 var svg_map;
 var abilaProjection;
 var mapmargin = { top: 20, right: 20, bottom: 40, left: 40 },
-    mapwidth = 980 - mapmargin.left - mapmargin.right,
+    mapwidth = 900 - mapmargin.left - mapmargin.right,
     mapheight = 610 - mapmargin.top - mapmargin.bottom;
 
 var gpsData;
@@ -33,11 +33,14 @@ var xScale;
 var drag;
 
 document.addEventListener('DOMContentLoaded', function () {
-    Promise.all([d3.json('data/abila.geojson'), d3.csv('data/gps.csv'), d3.csv('data/car-assignments.csv'), d3.json('data/day_car_gps_mapping.json')]).then(function (values) {
+    Promise.all([d3.json('data/abila.geojson'), d3.csv('data/gps.csv'), d3.csv('data/car-assignments.csv'), d3.json('data/day_car_gps_mapping.json'),
+                    d3.json('preprocessing_scripts/house_coordinates.json')]).then(function (values) {
         abila = values[0];
         gpsData = values[1];
         carOwners = values[2];
         gdc = values[3];
+        homes = values[4];
+        console.log(Object.entries(homes));
         //console.log(gdc);
         // console.log(gpsData[1].Timestamp);
         // console.log(carIds);
@@ -95,6 +98,19 @@ function plotAbila() {
         .attr('stroke-width', 3)
         .style('font-size', '15px')
         .call(xAxis);
+
+    svg_map.selectAll('.houses')
+            .data(Object.entries(homes))
+            .join('rect')
+            .attr('class', 'houses')
+            .attr('x', d => abilaProjection([+d[1]['range'][0][0], +d[1]['range'][0][1]])[0])
+            .attr('y', d => abilaProjection([+d[1]['range'][0][0], +d[1]['range'][0][1]])[1])
+            .attr('height', 20)
+            .attr('width', 20)
+            .style('opacity',0.5)
+            .attr('fill', 'black')
+            .append('title')
+            .text(d => d[1]['name'])
 }
 
 function plotGPS() {
@@ -132,6 +148,20 @@ function plotGPS() {
 function addCars(carIds) {
     svg_cars = d3.select('#map_cars');
 
+
+    svg_cars.selectAll('.outerRect')
+    .data(carIds)
+    .join('rect')
+    .attr('id', d => "car_"+d)
+    .attr('class', 'outerRect')
+    .attr('x', 40)
+    .attr('y', (d, i) => (i + 1) * 25)
+    .attr('height', 20)
+    .attr('width', 200)
+    .style('opacity',0)
+    .attr('fill', 'red');
+
+
     svg_cars.selectAll('.cars')
         .data(carIds)
         .join('rect')
@@ -161,16 +191,19 @@ function addCars(carIds) {
         .join('text')
         .attr('class', 'carIds')
         .attr('x', 45)
+        // .attr('id', d => "car_"+d)
         .attr('y', (d, i) => (i + 1) * 25 + 15)
         .text(d => d)
         .on('click', (d, i) => {
             if (!selected_cars.includes(d.target.innerHTML)) {
                 selected_cars.push(d.target.innerHTML);
+                d3.selectAll("#car_"+d.target.innerHTML).style('opacity', 0.5);
             } else {
                 var index = selected_cars.indexOf(d.target.innerHTML);
                 if (index != -1) {
                     selected_cars.splice(index, 1);
                 }
+                d3.selectAll("#car_"+d.target.innerHTML).style('opacity', 0);
             }
             updateData(d.target.innerHTML);
             plotGPS();
@@ -182,15 +215,18 @@ function addCars(carIds) {
         .join('text')
         .attr('class', 'carOwners')
         .attr('x', 70)
+        // .attr('id', d => "car_"+d.CarID)
         .attr('y', (d, i) => (i + 1) * 25 + 15)
         .text(d => d.FirstName + ' ' + d.LastName)
         .on('click', (d, i) => {
             if (!selected_cars.includes(d.target.__data__.CarID)) {
                 selected_cars.push(d.target.__data__.CarID);
+                d3.selectAll("#car_"+d.target.__data__.CarID).style('opacity', 0.5);
             } else {
                 var index = selected_cars.indexOf(d.target.__data__.CarID);
                 if (index != -1) {
                     selected_cars.splice(index, 1);
+                    d3.selectAll("#car_"+d.target.__data__.CarID).style('opacity', 0);
                     //console.log(selected_cars);
                 }
             }
@@ -198,17 +234,21 @@ function addCars(carIds) {
             plotGPS();
 
         })
+
+        
+        
 }
 
 function updateData(car) {
     highlightInNetworkChartBasedOnSelection(car);
     // console.log(gdc[date.getDate()][1]);
     //console.log(gdc[date.getDate()][car]);
-    console.log(car);
     if (selected_cars.includes(car)) {
         plotData[car] = gdc[date.getDate()][car];
+        d3.selectAll("#car_"+car).style('opacity', 0.5);
     } else {
         delete plotData[car];
+        d3.selectAll("#car_"+car).style('opacity', 0);
     }
 
     //console.log(plotData);
